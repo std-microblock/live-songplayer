@@ -1,0 +1,11 @@
+{
+  "dependencies": {
+    "bilibili-live-ws": "^5.1.1",
+    "input": "^1.0.1",
+    "koa": "^2.13.1",
+    "koa-static": "^5.0.0",
+    "NeteaseCloudMusicApi": "^4.0.17",
+    "node-fetch": "^2.6.1",
+    "ws": "^7.5.3"
+  }
+}
