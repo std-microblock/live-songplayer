@@ -1,0 +1,30 @@
+.block{
+    border-radius: 6px;
+    padding:13px;
+    margin:10px;
+    border:rgb(197, 197, 197) 1px solid;
+    box-shadow: 2px 3px 20px rgba(0, 0, 0, 0.062);
+    float: left;
+    max-width: 300px;
+    .title{
+        font-size:23px;
+        font-weight: 800;
+    }
+    .btn{
+        background-color:rgb(255, 51, 0);
+        padding:5px 12px;
+        float: left;
+        margin:5px;
+        cursor: pointer;
+        color:white;
+        border-radius: 3px;
+        transition: all 0.1s;
+        &:hover{
+            background-color:rgb(197, 50, 13);
+        }
+    }
+}
+
+.clr{
+    clear:both;
+}

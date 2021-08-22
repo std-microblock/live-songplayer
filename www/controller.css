@@ -1,0 +1,36 @@
+.block {
+  border-radius: 6px;
+  padding: 13px;
+  margin: 10px;
+  border: #c5c5c5 1px solid;
+  -webkit-box-shadow: 2px 3px 20px rgba(0, 0, 0, 0.062);
+          box-shadow: 2px 3px 20px rgba(0, 0, 0, 0.062);
+  float: left;
+  max-width: 300px;
+}
+
+.block .title {
+  font-size: 23px;
+  font-weight: 800;
+}
+
+.block .btn {
+  background-color: #ff3300;
+  padding: 5px 12px;
+  float: left;
+  margin: 5px;
+  cursor: pointer;
+  color: white;
+  border-radius: 3px;
+  -webkit-transition: all 0.1s;
+  transition: all 0.1s;
+}
+
+.block .btn:hover {
+  background-color: #c5320d;
+}
+
+.clr {
+  clear: both;
+}
+/*# sourceMappingURL=controller.css.map */

@@ -34,8 +34,6 @@
   float: right;
   width: calc(100vw - 30vh - 80px);
   height: calc(30vh - 40px);
-  -webkit-backdrop-filter: blur(10px);
-          backdrop-filter: blur(10px);
   padding: 30px 30px;
 }
 

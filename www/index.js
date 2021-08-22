@@ -1,21 +1,39 @@
 let ws = new WebSocket(document.location.href.replace(/htt\S+:\/\//, "ws://")
     .replace(document.location.port, +document.location.port + 1));
+
+var cust=false
+
+ws.onclose = function () {
+    let failedTime = 0;
+    setInterval(() => {
+        document.querySelector("body > div.messagebox").innerText = "连接断开！正在尝试重连……" + (failedTime ? "失败次数：" + failedTime : "");
+    }, 10)
+    setTimeout(async function a() {
+        try {
+            await (await fetch("/")).text();
+            document.location.reload();
+        } catch (e) { failedTime++; }
+        setTimeout(a, 300)
+    }, 100)
+
+}
+
 var playlist = []
 
 let messageCycle =
-    `点歌命令：!play 歌曲名/网易云ID
-点歌命令：!pl 歌曲名/网易云ID
-删歌命令：!del 歌曲列表左下角数字`.split("\n");
+    `点歌命令：play 歌曲名/网易云ID
+点歌命令：pl 歌曲名/网易云ID
+删歌命令：del 歌曲列表左下角数字`.split("\n");
 let msgCycleIndex = 0, msgQueue = [];
-
+let paused=false
 
 setInterval(() => {
     if (playlist && (!document.querySelector("audio").src ||
-        document.querySelector("audio").ended)) {
+        document.querySelector("audio").ended||cust && !paused)) {
 
         play()
     }
-    if (playlist.length == 0 && !playing) {
+    if (playlist.length == 0 && !playing&&!cust) {
         document.querySelector("img").src = "/nosong.webp"
         document.querySelector(".nowPlaying .songname").innerText = "-"
         document.querySelector(".nowPlaying .detail .artist").innerText = "-"
@@ -48,10 +66,22 @@ setInterval(() => {
 
 var playing
 
-function play() {
-    playing = playlist[0];
-    if (!playing) return;
-    playlist.shift()
+document.querySelector("audio").onerror = async function () {
+    await switchMsg(playing.detail.name + " 播放失败！")
+    play()
+}
+
+setTimeout(()=>{
+    if(!playlist[0])ws.send(JSON.stringify({ type: "empty" }))
+},100)
+
+function play(song) {
+    if (!song) {
+        playing = playlist[0];
+        if (!playing) return;
+        cust=false
+        playlist.shift()
+    }else playing = song
 
     document.querySelector("img").src = playing.detail.cover
     document.querySelector(".nowPlaying .songname").innerText = playing.detail.name
@@ -60,11 +90,12 @@ function play() {
     document.querySelector("audio").src = playing.url
     document.querySelector("audio").play()
     document.querySelector("audio").onended = () => {
+        if(!playlist[0])ws.send(JSON.stringify({ type: "empty" }))
         playing = undefined
     }
-   ws.send(JSON.stringify({ type: "pl-shift" }))
+    ws.send(JSON.stringify({ type: "pl-shift" }))
 }
-let resetMsg=0
+let resetMsg = 0
 ws.onmessage = function (msg) {
     msg = JSON.parse(msg.data)
 
@@ -75,14 +106,35 @@ ws.onmessage = function (msg) {
             // if(document.querySelector("audio").src!=playlist[0].url)play()
             break;
         }
-        case "message":{
-            resetMsg=1
+        case "message": {
+            resetMsg = 1
             switchMsg(msg.msg)
-            
+
             break;
         }
-        case "jump":{
-            play()
+        case "jump": {
+            document.querySelector("audio").pause()
+            if(!playlist[0])ws.send(JSON.stringify({ type: "empty" }))
+            else play()
+            break;
+        }
+        case "pause": {
+            document.querySelector("audio").pause()
+            paused=true
+            break;
+        }
+        case "continue": {
+            paused=false
+            document.querySelector("audio").play()
+            break;
+        }
+        case "empty": {
+            play(msg.song);
+            cust=true
+            break;
+        }
+        case "url": {
+            playlist[msg.id].msg = msg.url
             break;
         }
         default: {
@@ -112,10 +164,10 @@ async function switchMsg(tB) {
 }
 
 !(async function swit() {
-    while(1){
+    while (1) {
         await timeout(10000)
-        if(resetMsg){
-            resetMsg=0;
+        if (resetMsg) {
+            resetMsg = 0;
             continue;
         }
         if (msgQueue.length != 0) {

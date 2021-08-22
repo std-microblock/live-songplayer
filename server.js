@@ -6,15 +6,37 @@ const options = {
 
 
 
+const util = require('util')
+const fs = require('fs')
+const streamPipeline = util.promisify(require('stream').pipeline)
+
+const fetch = require('node-fetch')
+
+function getTempUrl(id) {
+    if (fs.existsSync(__dirname + "\\www\\tmp\\" + id+".mp3")) return `http://localhost:${options.port}/tmp/${id}.mp3`
+    else return false
+}
+
+async function downloadToTemp(url = "", id) {
+    if (getTempUrl(id)) return getTempUrl(id)
+    const response = await fetch(url)
+    if (!response.ok) throw new Error(`unexpected response ${response.statusText}`)
+    id = id.replace(/[:,\\,\/]/g, "_")
+    fs.writeFileSync(__dirname + "\\www\\tmp\\" + id+".mp3", "")
+    await streamPipeline(response.body, fs.createWriteStream(__dirname + "/www/tmp/" + id+".mp3"))
+    return `http://localhost:${options.port}/tmp/${id}.mp3`
+}
 
 
 
 
 
-
-let store =
-    JSON.parse(require("fs").readFileSync(__dirname + "/store.json").toString())
-
+let store = {
+    blacklist: []
+}
+try {
+    store = JSON.parse(require("fs").readFileSync(__dirname + "/store.json").toString())
+} catch { }
 let Koa = require("koa");
 let app = new Koa();
 const WebSocket = require('ws');
@@ -31,7 +53,7 @@ function wsEmit(msg) {
     }
 }
 
-function wsMsg(msg) {
+async function wsMsg(msg) {
     console.log(msg)
     try {
         msg = JSON.parse(msg);
@@ -42,9 +64,46 @@ function wsMsg(msg) {
                     type: "playlist",
                     playlist: playQueue
                 })
+
+                // for (let i = 0; i < 2; i++)
+                //     if (playQueue[i])
+                //         playQueue[i].source.getSongURL().then(url => {
+                //             console.log(url)
+                //             wsEmit({
+                //                 type: "url",
+                //                 id: i,
+                //                 url
+                //             })
+                //         })
+
                 break;
             }
-
+            case "fake-msg": {
+                fakeMsg(msg.msg)
+                break;
+            }
+            case "empty": {
+                let song = await options.source.random()
+                let offline_url = await getTempUrl(detail.id);
+                if (!offline_url) {
+                    let ol_url = (await song.getSongURL());
+                    offline_url = await downloadToTemp(ol_url, detail.id)
+                }
+                let s = {
+                    type: "empty",
+                    song: {
+                        sender: "System"
+                        , detail: (await song.getSongDetail()),
+                        url: offline_url, source: song
+                    }
+                }
+                wsEmit(s);
+                break;
+            }
+            case "login":{
+                let ret=await options.source.login();
+                wsEmit({type:"login",data:ret})
+            }
         }
     } catch (e) { }
 }
@@ -72,11 +131,12 @@ let process = async (data) => {
     // try{
     if (data.cmd != "DANMU_MSG") return;
     let msg = data.info[1], sender = data.info[2][1];
-    if (!msg.startsWith("!")) return;
-    let cmdData = msg.slice(1).split(" ");
+    // if (!msg.startsWith("!")) return;
+    let cmdData = msg/*.slice(1)*/.split(" ");
     console.log(`[${new Date().toDateString()}] Detected command from "${sender}":\n    cmd:"${cmdData[0]}"\n    args:[${cmdData.slice(1)}]`)
 
     switch (cmdData[0]) {
+        case '点歌':
         case 'pl':
         case 'play': {
             let song = await options.source.search(cmdData.slice(1).join(" "));
@@ -95,25 +155,14 @@ let process = async (data) => {
                 })
                 return;
             };
-            song = {
-                sender, detail, url: (await song.getSongURL())
-            }
-            console.log(`[${new Date().toDateString()}] Added to queue:\n   ${JSON.stringify(song)}`);
-            playQueue.push(song);
-            wsEmit({
-                type: "playlist",
-                playlist: playQueue
-            })
-            wsEmit({
-                type: "message",
-                msg: `${song.sender} 点歌成功！`
-            })
+            song = await addSong(song, sender, detail);
             break;
         }
+        case '删除':
         case 'del':
         case 'delete': {
             let song = playQueue[+cmdData[1] - 1];
-            if (song && song.sender == sender) {
+            if (song && (song.sender == sender || sender == "Console")) {
                 playQueue.splice(+cmdData[1] - 1, 1)
                 wsEmit({
                     type: "playlist",
@@ -126,18 +175,31 @@ let process = async (data) => {
             }
             break;
         }
+        case 'pause': {
+            wsEmit({
+                type: "pause"
+            })
+            break;
+        }
+        case 'continue': {
+            wsEmit({
+                type: "continue"
+            })
+            break;
+        }
         case 'jmp':
         case 'jump': {
             if (sender != "Console") return;
             wsEmit({
                 type: "jump"
             })
+            break;
         }
         case 'bl':
         case 'blacklist': {
             if (sender != "Console") return;
 
-            function addBlacklist(name){
+            function addBlacklist(name) {
                 store.blacklist.push(name)
                 console.log(`歌曲名 "${name}" 加黑成功！`)
                 playQueue = playQueue.reduce((pre, cur) => {
@@ -152,14 +214,14 @@ let process = async (data) => {
 
             if (cmdData[1] == "add") {
                 addBlacklist(cmdData.slice(2).join(" "))
-            }else if(cmdData[1] == "remove"){
-                let name=cmdData.slice(2).join(" ")
-                store.blacklist=store.blacklist.reduce((pre,cur)=>{
-                    if(cur!=name)pre.push(cur);
+            } else if (cmdData[1] == "remove") {
+                let name = cmdData.slice(2).join(" ")
+                store.blacklist = store.blacklist.reduce((pre, cur) => {
+                    if (cur != name) pre.push(cur);
                     return pre;
-                },[])
+                }, [])
                 console.log(`歌曲名 "${name}" 去黑成功！`)
-            }else{
+            } else {
                 addBlacklist(cmdData.slice(1).join(" "))
             }
             break;
@@ -184,28 +246,56 @@ live.on('msg', process)
 
 
 
-
 let input = require('input');
+
+function fakeMsg(msg) {
+    process({
+        cmd: 'DANMU_MSG',
+        info: [
+            [
+                0, 1,
+                25, 16777215,
+                1627491025556, 1627485440,
+                0, '22b4911b',
+                0, 0,
+                0, '',
+                0, '{}'
+            ],
+            msg,
+            [413164365, 'Console', 0, 0, 0, 10000, 1, ''],
+        ]
+    })
+}
+
 
 !(async function __main__() {
     let ans;
     while (true) {
         ans = await input.text('>')
-        process({
-            cmd: 'DANMU_MSG',
-            info: [
-                [
-                    0, 1,
-                    25, 16777215,
-                    1627491025556, 1627485440,
-                    0, '22b4911b',
-                    0, 0,
-                    0, '',
-                    0, '{}'
-                ],
-                ans,
-                [413164365, 'Console', 0, 0, 0, 10000, 1, ''],
-            ]
-        })
+        fakeMsg(ans)
     }
 })()
+
+async function addSong(song, sender, detail = undefined) {
+    if (!detail) detail = await song.getSongDetail();
+    let offline_url = await getTempUrl(detail.id);
+    if (!offline_url) {
+        let ol_url = (await song.getSongURL());
+        offline_url = await downloadToTemp(ol_url, detail.id)
+    }
+    console.log(offline_url)
+    song = {
+        sender, detail, url: offline_url, source: song
+    };
+    console.log(`[${new Date().toDateString()}] Added to queue:\n   ${JSON.stringify(song)}`);
+    playQueue.push(song);
+    wsEmit({
+        type: "playlist",
+        playlist: playQueue
+    });
+    wsEmit({
+        type: "message",
+        msg: `${song.sender} 点歌成功！`
+    });
+    return song;
+}

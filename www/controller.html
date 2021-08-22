@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MLSP Controller</title>
+</head>
+
+<body>
+    <link rel="stylesheet" href="./controller.css">
+
+    <div class="messagebox"></div>
+
+    <div class="block">
+        <div class="title">
+            歌曲控制
+        </div>
+        <div class="btn" onclick='remoteFakeMsg("jump")'>跳过本首</div>
+        <div class="btn" onclick='remoteFakeMsg("pause")'>暂停</div>
+        <div class="btn" onclick='remoteFakeMsg("continue")'>继续</div>
+        <div class="clr"></div>
+
+        <div class="title">
+            歌曲
+        </div>
+        <div class="songs">
+            
+        </div>
+        <div class="title">
+            登录
+        </div>
+        <div class="login" id="ele_login">
+            
+        </div>
+        <div onclick="login()" class="btn">刷新</div>
+    </div>
+
+    <script src="./controller.js"></script>
+</body>
+
+</html>
