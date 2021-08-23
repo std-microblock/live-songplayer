@@ -84,6 +84,7 @@ async function wsMsg(msg) {
             }
             case "empty": {
                 let song = await options.source.random()
+                let detail=await song.getSongDetail()
                 let offline_url = await getTempUrl(detail.id);
                 if (!offline_url) {
                     let ol_url = (await song.getSongURL());
