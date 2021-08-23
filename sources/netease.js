@@ -110,7 +110,6 @@ module.exports = {
             }, []), song.id, song.al.picUrl, (await check_music({ id: song.id, ...baseSettings })).body.success);
             else return new Song(0, 0, 0, 0, false);
         } catch (e) {
-            console.error(e, JSON.stringify(e))
             return new Song(0, 0, 0, 0, false);
         }
     }, random: function () {
