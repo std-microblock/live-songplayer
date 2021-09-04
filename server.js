@@ -13,7 +13,7 @@ const streamPipeline = util.promisify(require('stream').pipeline)
 const fetch = require('node-fetch')
 
 function getTempUrl(id) {
-    if (fs.existsSync(__dirname + "\\www\\tmp\\" + id+".mp3")) return `/tmp/${id}.mp3`
+    if (fs.existsSync(__dirname + "/www/tmp/" + id+".mp3")) return `/tmp/${id}.mp3`
     else return false
 }
 
@@ -22,7 +22,7 @@ async function downloadToTemp(url = "", id) {
     const response = await fetch(url)
     if (!response.ok) throw new Error(`unexpected response ${response.statusText}`)
     id = id.replace(/[:,\\,\/]/g, "_")
-    fs.writeFileSync(__dirname + "\\www\\tmp\\" + id+".mp3", "")
+    fs.writeFileSync(__dirname + "/www/tmp/" + id+".mp3", "")
     await streamPipeline(response.body, fs.createWriteStream(__dirname + "/www/tmp/" + id+".mp3"))
     return `/tmp/${id}.mp3`
 }
