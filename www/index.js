@@ -75,9 +75,6 @@ document.querySelector("audio").onerror = async function () {
     play()
 }
 
-setTimeout(()=>{
-    if(!playlist[0]&&window.wsready)ws.send(JSON.stringify({ type: "empty" }))
-},100)
 
 function play(song) {
     if (!song) {
@@ -190,7 +187,8 @@ async function switchMsg(tB) {
     }
 })()
 
-setTimeout(()=>{
+setInterval(()=>{
+    if(!playlist[0]&&window.wsready)ws.send(JSON.stringify({ type: "empty" }))
     if(playlist[0])document.querySelector(".nextName").innerText=playlist[0].detail.name
     else document.querySelector(".nextName").innerText="[随机]"
     document.querySelector(".playlistLength").innerText=playlist.length
