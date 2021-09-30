@@ -187,8 +187,15 @@ async function switchMsg(tB) {
     }
 })()
 
+setTimeout(async ()=>{
+    while(!window.wsready)await timeout(100)
+    if(!playlist[0])ws.send(JSON.stringify({ type: "empty" }))
+})
+
+
+
 setInterval(()=>{
-    if(!playlist[0]&&window.wsready)ws.send(JSON.stringify({ type: "empty" }))
+    
     if(playlist[0])document.querySelector(".nextName").innerText=playlist[0].detail.name
     else document.querySelector(".nextName").innerText="[随机]"
     document.querySelector(".playlistLength").innerText=playlist.length
