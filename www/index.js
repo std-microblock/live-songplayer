@@ -3,6 +3,10 @@ let ws = new WebSocket(document.location.href.replace(/htt\S+:\/\//, "ws://")
 
 var cust=false
 
+ws.onopen = function(){
+    window.wsready=true
+}
+
 ws.onclose = function () {
     let failedTime = 0;
     setInterval(() => {
@@ -72,7 +76,7 @@ document.querySelector("audio").onerror = async function () {
 }
 
 setTimeout(()=>{
-    if(!playlist[0])ws.send(JSON.stringify({ type: "empty" }))
+    if(!playlist[0]&&window.wsready)ws.send(JSON.stringify({ type: "empty" }))
 },100)
 
 function play(song) {
@@ -83,6 +87,10 @@ function play(song) {
         playlist.shift()
     }else playing = song
 
+    if(playlist[0])document.querySelector(".nextName").innerText=playlist[0].detail.name
+    else document.querySelector(".nextName").innerText="[随机]"
+    document.querySelector(".playlistLength").innerText=playlist.length
+
     document.querySelector("img").src = playing.detail.cover
     document.querySelector(".nowPlaying .songname").innerText = playing.detail.name
     document.querySelector(".nowPlaying .detail .artist").innerText = playing.detail.artists.join(" / ")
@@ -90,7 +98,7 @@ function play(song) {
     document.querySelector("audio").src = playing.url
     document.querySelector("audio").play()
     document.querySelector("audio").onended = () => {
-        if(!playlist[0])ws.send(JSON.stringify({ type: "empty" }))
+        if(!playlist[0]&&window.wsready)ws.send(JSON.stringify({ type: "empty" }))
         playing = undefined
     }
     ws.send(JSON.stringify({ type: "pl-shift" }))
@@ -181,3 +189,9 @@ async function switchMsg(tB) {
         }
     }
 })()
+
+setTimeout(()=>{
+    if(playlist[0])document.querySelector(".nextName").innerText=playlist[0].detail.name
+    else document.querySelector(".nextName").innerText="[随机]"
+    document.querySelector(".playlistLength").innerText=playlist.length
+},100)

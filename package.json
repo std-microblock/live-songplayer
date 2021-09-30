@@ -7,5 +7,28 @@
     "NeteaseCloudMusicApi": "^4.0.17",
     "node-fetch": "^2.6.1",
     "ws": "^7.5.3"
-  }
+  },
+  "scripts": {
+    "start": "node server.js"
+  },
+  "name": "live-songplayer",
+  "description": "一个 BiliBili 弹幕点歌机！",
+  "version": "1.0.3",
+  "main": "server.js",
+  "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MicroCBer/live-songplayer.git"
+  },
+  "keywords": [
+    "bilibili",
+    "songplayer",
+    "live"
+  ],
+  "author": "MicroBlock",
+  "license": "GPL-3.0-or-later",
+  "bugs": {
+    "url": "https://github.com/MicroCBer/live-songplayer/issues"
+  },
+  "homepage": "https://github.com/MicroCBer/live-songplayer#readme"
 }
