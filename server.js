@@ -1,7 +1,13 @@
 const options = {
     roomid: 3106704,
     source: require("./sources/netease.js"),
-    port: 10103 //WebSocket Port=port+1
+    port: 10103, //WebSocket Port=port+1
+    lyricBlacklist:{
+        enabled:false,
+        include:[
+            "填写你要禁用的歌曲包含的歌词",
+        ]
+    }
 }
 
 
@@ -136,12 +142,25 @@ let process = async (data) => {
     let cmdData = msg/*.slice(1)*/.split(" ");
     console.log(`[${new Date().toDateString()}] Detected command from "${sender}":\n    cmd:"${cmdData[0]}"\n    args:[${cmdData.slice(1)}]`)
 
-    switch (cmdData[0]) {
+    switch (cmdData[0].toLowerCase()) {
         case '点歌':
         case 'pl':
         case 'play': {
             let song = await options.source.search(cmdData.slice(1).join(" "));
             let detail = await song.getSongDetail();
+            if(options.lyricBlacklist.enabled){
+                let lyric=await song.getLyric();
+                if(options.lyricBlacklist.include.reduce((pre,cur)=>{
+                    if(pre)return pre;
+                    return lyric.includes(cur);
+                },false)){
+                    wsEmit({
+                        type: "message",
+                        msg: `${sender} 点歌失败：歌词在黑名单中`
+                    })
+                    return;
+                }
+            }
             if (!detail.playable) {
                 wsEmit({
                     type: "message",

@@ -29,7 +29,7 @@ let fetch = require("node-fetch")
     }
 })()
 
-const { song_detail, search, check_music, song_url, login_qr_key, login_qr_create, login_status } = require('NeteaseCloudMusicApi');
+const { song_detail, search, check_music, song_url, login_qr_key, login_qr_create, login_status, lyric } = require('NeteaseCloudMusicApi');
 let baseSettings = {
     // proxy: "http://localhost:41091",
     cookie:null
@@ -62,12 +62,14 @@ class Song {
         }
 
     }
-
+    getLyric(){
+        return api.lyric(this)
+    }
 }
 
 let timer = -1;
 
-module.exports = {
+const api={
     async login() {
         return { text: "目前暂不支持登录" }
 
@@ -87,7 +89,7 @@ module.exports = {
             img: qr.body.data.qrimg
         }
     },
-    search: async function (arg) {
+    async search (arg) {
         try {
             arg = arg.toString()
             let song;
@@ -112,8 +114,16 @@ module.exports = {
         } catch (e) {
             return new Song(0, 0, 0, 0, false);
         }
-    }, random: function () {
+    },
+    async lyric(song){
+        let lrc=(await lyric({id:song.id,...baseSettings})).body
+        if(lrc.nolyric||!lrc.lrc||!lrc.lrc.lyric)return "[NO LYRIC]";
+        return lrc.lrc.lyric
+    },
+    random() {
         return this.search(SETTINGS.defaultRandomPlaylist[
             Math.floor(Math.random() * SETTINGS.defaultRandomPlaylist.length)])
     }
 }
+
+module.exports = api
